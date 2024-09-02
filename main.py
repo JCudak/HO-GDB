@@ -1,56 +1,49 @@
 import os
 
 from database import Database
-from utils import parse_number  # Assuming parse_number is defined in utils
+from utils import parse_number
+from graph_data.GraphStorage import GraphStorage
 
 
-def gui2(db: Database):
+def parse_and_validate_node_names(node_names: str) -> set:
+    """Parse a semi-colon-separated string of node names and return a set of valid names."""
+    return {name.strip() for name in node_names.split(';') if name.strip()}
+
+
+def parse_and_validate_edges(edges_input: str) -> list:
+    """Parse a semi-colon-separated string of edges in the format (start_node,end_node) and return a list of tuples."""
+    return [tuple(edge.strip('() ').split(',')) for edge in edges_input.split(';')]
+
+
+def gui2(db: Database, graphStorage: GraphStorage):
+    """Graph modification GUI."""
+
     def add_nodes():
-        node_names = input("Enter the name of the Node(s): ")
-        with db._driver.session() as session:
-            for node_name in node_names.split(" "):
-                db.add_node(session, labels=["Node"], properties={"name": node_name})
+        node_names = input("Enter node name(s) separated by semi-colon: ")
+        valid_node_names = parse_and_validate_node_names(node_names)
+        for node_name in valid_node_names:
+            graphStorage.add_node(node_name)
         print("Node(s) added successfully.")
 
     def delete_nodes():
-        node_names = input("Enter Node name(s) to delete: ")
-        with db._driver.session() as session:
-            for node_name in node_names.split(" "):
-                db.delete_node(session, labels=["Node"], properties={"name": node_name})
+        node_names = input("Enter node name(s) to delete separated by semi-colon: ")
+        valid_node_names = parse_and_validate_node_names(node_names)
+        for node_name in valid_node_names:
+            graphStorage.delete_node(node_name)
         print("Node(s) deleted successfully.")
 
     def add_edges():
-        edges_input = input("Enter Edge(s) in format (start_node,end_node): ")
-        edges = [tuple(edge.strip('() ').split(',')) for edge in edges_input.split(' ')]
-
-        with db._driver.session() as session:
-            for start_node_name, end_node_name in edges:
-                start_node_name = start_node_name.strip()
-                end_node_name = end_node_name.strip()
-
-                db.add_edge(session,
-                            start_node_labels=["Node"],
-                            start_node_properties={"name": start_node_name},
-                            end_node_labels=["Node"],
-                            end_node_properties={"name": end_node_name},
-                            relationship_type="CONNECTED")
+        edges_input = input("Enter edge(s) in format (start_node,end_node) separated by semi-colon: ")
+        edges = parse_and_validate_edges(edges_input)
+        for start_node_name, end_node_name in edges:
+            graphStorage.add_edge(start_node_name.strip(), end_node_name.strip())
         print("Edges added successfully.")
 
     def delete_edges():
-        edges_input = input("Enter Edge(s) to delete in  format (start_node,end_node): ")
-        edges = [tuple(edge.strip('() ').split(',')) for edge in edges_input.split(' ')]
-
-        with db._driver.session() as session:
-            for start_node_name, end_node_name in edges:
-                start_node_name = start_node_name.strip()
-                end_node_name = end_node_name.strip()
-
-                db.delete_edge(session,
-                               start_node_labels=["Node"],
-                               start_node_properties={"name": start_node_name},
-                               end_node_labels=["Node"],
-                               end_node_properties={"name": end_node_name},
-                               relationship_type="CONNECTED")
+        edges_input = input("Enter edge(s) to delete in format (start_node,end_node) separated by semi-colon: ")
+        edges = parse_and_validate_edges(edges_input)
+        for start_node_name, end_node_name in edges:
+            graphStorage.delete_edge(start_node_name.strip(), end_node_name.strip())
         print("Edges deleted successfully.")
 
     options = {
@@ -73,6 +66,7 @@ def gui2(db: Database):
               "7 - Exit")
         choice = parse_number("Enter a number: ")
         if choice == 7:
+            print(graphStorage)
             break
         option_function = options.get(choice)
         if option_function:
@@ -80,12 +74,16 @@ def gui2(db: Database):
 
 
 def gui():
+    """Main GUI for graph management."""
+
     def clear_graph():
         with db._driver.session() as session:
             db.clear_data(session)
+        print("Graph cleared successfully.")
 
     def export_graph():
         export_dir = "exported"
+        os.makedirs(export_dir, exist_ok=True)
         with db._driver.session() as session:
             db.export_nodes_to_csv(session, os.path.join(export_dir, 'nodes.csv'))
             db.export_edges_to_csv(session, os.path.join(export_dir, 'edges.csv'))
@@ -100,7 +98,7 @@ def gui():
 
     options = {
         1: import_graph,
-        2: lambda: gui2(db),
+        2: lambda: gui2(db, graphStorage),
         3: export_graph,
         4: clear_graph,
         5: lambda: None,
@@ -113,8 +111,8 @@ def gui():
               "2 - Modify Graph\n"
               "3 - Export Graph\n"
               "4 - Clear Graph\n"
-              "5 - Display Higher-Order Graph(Only for Kuzu)\n"
-              "6 - Generate Heterogenous Graph\n"
+              "5 - Display Higher-Order Graph (Only for Kuzu)\n"
+              "6 - Generate Heterogeneous Graph\n"
               "7 - Exit")
         choice = parse_number("Enter a number: ")
         if choice == 7:
@@ -126,5 +124,8 @@ def gui():
 
 if __name__ == "__main__":
     db = Database()
-    gui()
-    db.end_session()
+    graphStorage = GraphStorage(db)
+    try:
+        gui()
+    finally:
+        db.end_session()
