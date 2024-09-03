@@ -93,12 +93,14 @@ class GraphStorage:
 
         self._with_session(operation)
 
-    def add_hyper_edge(self, hyper_edge: HyperEdge):
-        """Add a HyperEdge instance to the graph."""
+    def add_hyper_edge(self, node_names: frozenset, relationship_type: str = "CONNECTED"):
+        """Create an Edge instance and add it to both the graph and the database."""
+        hyper_edge = HyperEdge(node_names, relationship_type)
         self.hyper_edges.add(hyper_edge)
 
-    def delete_hyper_edge(self, hyper_edge: HyperEdge):
+    def delete_hyper_edge(self, node_names: frozenset, relationship_type: str = "CONNECTED"):
         """Remove a HyperEdge instance from the graph."""
+        hyper_edge = HyperEdge(node_names, relationship_type)
         self.hyper_edges.discard(hyper_edge)
 
     def import_nodes_from_csv(self, file_path: str, clear: bool = True):

@@ -1,11 +1,14 @@
+from graph_data.Node import Node
+
+
 class Edge:
-    def __init__(self, start_node: str, end_node: str, relationship_type: str):
-        self.start_node: str = start_node
-        self.end_node: str = end_node
+    def __init__(self, start_node_name: str, end_node_name: str, relationship_type: str):
+        self.start_node: Node = Node(start_node_name)
+        self.end_node: Node = Node(end_node_name)
         self.relationship_type: str = relationship_type
 
     def __repr__(self):
-        return f"({self.start_node}) --[{self.relationship_type}]--> ({self.end_node})"
+        return f"({self.start_node},{self.end_node})->[{self.relationship_type}]"
 
     def __eq__(self, other):
         return (self.start_node == other.start_node and
