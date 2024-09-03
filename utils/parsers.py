@@ -6,11 +6,16 @@ def parse_number(prompt):
             print("Please enter a correct number!")
 
 
-def parse_edge_name_input():
-    edge_id_str = input("Enter edge id in format (node1, node2): ")
-    try:
-        node1, node2 = map(int, edge_id_str.strip("() ").split(","))
-        return node1, node2
-    except ValueError:
-        print("Invalid input format. Please use the format (node1, node2, key).")
-        return None
+def parse_and_validate_nodes(nodes_input: str) -> set:
+    """Parse a semi-colon-separated string of node names and return a set of valid names."""
+    return {name.strip() for name in nodes_input.split(';') if name.strip()}
+
+
+def parse_and_validate_edges(edges_input: str) -> list:
+    """Parse a semi-colon-separated string of edges in the format (start_node,end_node) and return a list of tuples."""
+    return [tuple(edge.strip('() ').split(',')) for edge in edges_input.split(';')]
+
+
+def parse_and_validate_hyper_edges(edges_input: str) -> list:
+    """Parse a semi-colon-separated string of hyper_edges in the format (node_1,node_2,...,node_n) and return a list of sets."""
+    return [frozenset(edge.strip('() ').split(',')) for edge in edges_input.split(';')]
