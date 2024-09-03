@@ -1,8 +1,8 @@
 class Edge:
-    def __init__(self, start_node, end_node, relationship_type):
-        self.start_node = start_node
-        self.end_node = end_node
-        self.relationship_type = relationship_type
+    def __init__(self, start_node: str, end_node: str, relationship_type: str):
+        self.start_node: str = start_node
+        self.end_node: str = end_node
+        self.relationship_type: str = relationship_type
 
     def __repr__(self):
         return f"({self.start_node}) --[{self.relationship_type}]--> ({self.end_node})"
@@ -13,4 +13,4 @@ class Edge:
                 self.relationship_type == other.relationship_type)
 
     def __hash__(self):
-        return hash(self.start_node + self.end_node + self.relationship_type)
+        return hash((self.start_node, self.end_node, self.relationship_type))

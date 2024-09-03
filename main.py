@@ -15,7 +15,7 @@ def parse_and_validate_edges(edges_input: str) -> list:
     return [tuple(edge.strip('() ').split(',')) for edge in edges_input.split(';')]
 
 
-def gui2(db: Database, graphStorage: GraphStorage):
+def modify_graph_gui(db: Database, graphStorage: GraphStorage):
     """Graph modification GUI."""
 
     def add_nodes():
@@ -56,7 +56,7 @@ def gui2(db: Database, graphStorage: GraphStorage):
     }
 
     while True:
-        print("Choose an option:\n"
+        print("\nChoose an option:\n"
               "1 - Add Node(s)\n"
               "2 - Delete Node(s)\n"
               "3 - Add Edge(s)\n"
@@ -65,8 +65,8 @@ def gui2(db: Database, graphStorage: GraphStorage):
               "6 - Delete Hyper Edge\n"
               "7 - Exit")
         choice = parse_number("Enter a number: ")
+        print()
         if choice == 7:
-            print(graphStorage)
             break
         option_function = options.get(choice)
         if option_function:
@@ -77,8 +77,7 @@ def gui():
     """Main GUI for graph management."""
 
     def clear_graph():
-        with db._driver.session() as session:
-            db.clear_data(session)
+        graphStorage.clear_graph()
         print("Graph cleared successfully.")
 
     def export_graph():
@@ -91,22 +90,24 @@ def gui():
 
     def import_graph():
         import_dir = "exported"
-        with db._driver.session() as session:
-            db.import_nodes_from_csv(session, os.path.join(import_dir, 'nodes.csv'))
-            db.import_edges_from_csv(session, os.path.join(import_dir, 'edges.csv'))
+        graphStorage.import_nodes_from_csv(os.path.join(import_dir, 'nodes.csv'))
+        graphStorage.import_edges_from_csv(os.path.join(import_dir, 'edges.csv'))
         print("Graph imported successfully.")
+
+    def display_higher_order_graph():
+        print(graphStorage)
 
     options = {
         1: import_graph,
-        2: lambda: gui2(db, graphStorage),
+        2: lambda: modify_graph_gui(db, graphStorage),
         3: export_graph,
         4: clear_graph,
-        5: lambda: None,
+        5: display_higher_order_graph,
         6: lambda: None,
     }
 
     while True:
-        print("Choose an option:\n"
+        print("\nChoose an option:\n"
               "1 - Import Graph\n"
               "2 - Modify Graph\n"
               "3 - Export Graph\n"
@@ -115,6 +116,7 @@ def gui():
               "6 - Generate Heterogeneous Graph\n"
               "7 - Exit")
         choice = parse_number("Enter a number: ")
+        print()
         if choice == 7:
             break
         option_function = options.get(choice)

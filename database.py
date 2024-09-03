@@ -8,6 +8,7 @@ from neo4j import GraphDatabase
 # Load environment variables from the .env file
 load_dotenv()
 
+
 class Database:
     def __init__(self):
         self._db_uri = os.getenv("DB_URI")
@@ -36,10 +37,11 @@ class Database:
         """Export nodes to a CSV file."""
         query = """
         MATCH (n)
-        RETURN labels(n) AS labels, properties(n) AS properties
+        RETURN labels(n) AS labels , properties(n) AS properties
         """
+        column_names = ["labels", "properties"]
         records = self._execute_query(session, query)
-        df = pd.DataFrame(records)
+        df = pd.DataFrame(records, columns=column_names)
         df.to_csv(file_name, index=False)
 
     def export_edges_to_csv(self, session, file_name: str):
@@ -48,8 +50,9 @@ class Database:
         MATCH (a)-[r]->(b)
         RETURN a.name AS start_name, b.name AS end_name, type(r) AS type, properties(r) AS properties
         """
+        column_names = ["start_name", "end_name", "type", "properties"]
         records = self._execute_query(session, query)
-        df = pd.DataFrame(records)
+        df = pd.DataFrame(records, columns=column_names)
         df.to_csv(file_name, index=False)
 
     def import_nodes_from_csv(self, session, file_name: str):
