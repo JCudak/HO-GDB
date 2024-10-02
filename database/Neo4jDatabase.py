@@ -1,15 +1,12 @@
-import ast
-import os
-from typing import List, Dict, Optional
-from dotenv import load_dotenv
-import pandas as pd
 from neo4j import GraphDatabase
+
+from database.Database import *
 
 # Load environment variables from the .env file
 load_dotenv()
 
 
-class Database:
+class Neo4jDatabase(Database):
     def __init__(self):
         self._db_uri = os.getenv("DB_URI")
         self._db_username = os.getenv("DB_USERNAME")
@@ -20,18 +17,6 @@ class Database:
         """Execute a Cypher query and return the results."""
         result = session.run(query, parameters or {})
         return [record for record in result]
-
-    def format_properties(self, properties: Optional[Dict[str, str]]) -> str:
-        """Convert a dictionary of properties to a Cypher-compatible string."""
-        if not properties:
-            return ""
-        return "{" + ", ".join(f"{k}: '{v}'" for k, v in properties.items()) + "}"
-
-    def format_labels(self, labels: Optional[List[str]]) -> str:
-        """Convert a list of labels to a Cypher-compatible string."""
-        if not labels:
-            return ""
-        return ":" + ":".join(labels)
 
     def export_nodes_to_csv(self, session, file_name: str):
         """Export nodes to a CSV file."""
@@ -104,7 +89,7 @@ class Database:
         self._execute_query(session, query)
 
     def add_edge(self, session, start_node_labels: List[str], start_node_properties: Dict[str, str],
-                 end_node_labels: List[str], end_node_properties: Dict[str, str], relationship_type: str):
+                 end_node_labels: List[str], end_node_properties: Dict[str, str], relationship_name: str):
         """Add a relationship (edge) between two nodes."""
         start_labels_str = self.format_labels(start_node_labels)
         end_labels_str = self.format_labels(end_node_labels)
@@ -113,13 +98,13 @@ class Database:
         query = f"""
         MERGE (start{start_labels_str} {start_properties_str})
         MERGE (end{end_labels_str} {end_properties_str})
-        MERGE (start)-[r:{relationship_type}]->(end)
+        MERGE (start)-[r:{relationship_name}]->(end)
         RETURN start.id AS startId, end.id AS endId
         """
         self._execute_query(session, query)
 
     def delete_edge(self, session, start_node_labels: List[str], start_node_properties: Dict[str, str],
-                    end_node_labels: List[str], end_node_properties: Dict[str, str], relationship_type: str):
+                    end_node_labels: List[str], end_node_properties: Dict[str, str], relationship_name: str):
         """Delete a relationship (edge) between two nodes."""
         start_labels_str = self.format_labels(start_node_labels)
         end_labels_str = self.format_labels(end_node_labels)
@@ -128,7 +113,7 @@ class Database:
         query = f"""
         MATCH (start{start_labels_str} {start_properties_str})
         MATCH (end{end_labels_str} {end_properties_str})
-        OPTIONAL MATCH (start)-[r:{relationship_type}]->(end)
+        OPTIONAL MATCH (start)-[r:{relationship_name}]->(end)
         DELETE r
         """
         self._execute_query(session, query)
@@ -140,6 +125,10 @@ class Database:
         DETACH DELETE n
         """
         self._execute_query(session, query)
+
+    def start_session(self):
+        """Start a new database session."""
+        return self._driver.session()
 
     def end_session(self):
         """Close the database connection."""

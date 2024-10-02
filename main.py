@@ -1,9 +1,14 @@
 import os
 
 from database import Database
+from database.KuzuDatabase import KuzuDatabase
+from database.Neo4jDatabase import Neo4jDatabase
 from utils import parse_number, parse_and_validate_edges, parse_and_validate_hyper_edges, parse_and_validate_nodes
 from graph_data.GraphStorage import GraphStorage
+from dotenv import load_dotenv
 
+# Load environment variables from the .env file
+load_dotenv()
 
 def modify_graph_gui():
     """Graph modification GUI."""
@@ -23,17 +28,18 @@ def modify_graph_gui():
         print("Node(s) deleted successfully.")
 
     def add_edges():
-        edges_input = input("Enter edge(s) in format (start_node,end_node) separated by semi-colon: ")
+        edges_input = input("Enter edge(s) in format (relationship_name,start_node,end_node) separated by semi-colon: ")
         edges = parse_and_validate_edges(edges_input)
-        for start_node_name, end_node_name in edges:
-            graph_storage.add_edge(start_node_name.strip(), end_node_name.strip())
+        for relationship_name, start_node_name, end_node_name in edges:
+            graph_storage.add_edge(start_node_name.strip(), end_node_name.strip(), relationship_name.strip())
         print("Edges added successfully.")
 
     def delete_edges():
-        edges_input = input("Enter edge(s) to delete in format (start_node,end_node) separated by semi-colon: ")
+        edges_input = input(
+            "Enter edge(s) to delete in format (relationship_name,start_node,end_node) separated by semi-colon: ")
         edges = parse_and_validate_edges(edges_input)
-        for start_node_name, end_node_name in edges:
-            graph_storage.delete_edge(start_node_name.strip(), end_node_name.strip())
+        for relationship_name, start_node_name, end_node_name in edges:
+            graph_storage.delete_edge(start_node_name.strip(), end_node_name.strip(), relationship_name.strip())
         print("Edges deleted successfully.")
 
     def add_hyper_edges():
@@ -130,7 +136,11 @@ def gui():
 
 
 if __name__ == "__main__":
-    db = Database()
+    db: Database
+    if os.getenv("DATABASE_PROVIDER") == "NEO4J":
+        db = Neo4jDatabase()
+    elif os.getenv("DATABASE_PROVIDER") == "KUZU":
+        db = KuzuDatabase()
     graph_storage = GraphStorage(db)
     try:
         gui()
