@@ -15,8 +15,9 @@ class GraphStorage:
 
     def _with_session(self, operation):
         """Context manager for database session handling."""
-        with self.db._driver.session() as session:
-            operation(session)
+        # with self.db.start_session() as session: ##### for Neo4jDatabase
+        #    operation(session) ##### for Neo4jDatabase
+        operation(self.db.start_session())
 
     def add_node(self, node_name: str):
         """Create a Node instance and add it to both the graph and the database."""
@@ -49,13 +50,13 @@ class GraphStorage:
 
         self._with_session(operation)
 
-    def add_edge(self, start_node_name: str, end_node_name: str, relationship_type: str = "CONNECTED"):
+    def add_edge(self, start_node_name: str, end_node_name: str, relationship_name: str = "CONNECTED"):
         """Create an Edge instance and add it to both the graph and the database."""
-        edge = Edge(start_node_name, end_node_name, relationship_type)
+        edge = Edge(start_node_name, end_node_name, relationship_name)
         self.edges.add(edge)
-        self._add_edge_to_database(start_node_name, end_node_name, relationship_type)
+        self._add_edge_to_database(start_node_name, end_node_name, relationship_name)
 
-    def _add_edge_to_database(self, start_node_name: str, end_node_name: str, relationship_type: str):
+    def _add_edge_to_database(self, start_node_name: str, end_node_name: str, relationship_name: str):
         """Add an edge to the database."""
 
         def operation(session):
@@ -65,20 +66,20 @@ class GraphStorage:
                 start_node_properties={"name": start_node_name},
                 end_node_labels=["Node"],
                 end_node_properties={"name": end_node_name},
-                relationship_type=relationship_type
+                relationship_name=relationship_name
             )
 
         self._with_session(operation)
 
-    def delete_edge(self, start_node_name: str, end_node_name: str, relationship_type: str = "CONNECTED"):
+    def delete_edge(self, start_node_name: str, end_node_name: str, relationship_name: str = "CONNECTED"):
         """Remove an Edge instance from the graph and the database."""
-        edge = Edge(start_node_name, end_node_name, relationship_type)
+        edge = Edge(start_node_name, end_node_name, relationship_name)
         if edge in self.edges:
             self.edges.remove(edge)
 
-        self._delete_edge_from_database(start_node_name, end_node_name, relationship_type)
+        self._delete_edge_from_database(start_node_name, end_node_name, relationship_name)
 
-    def _delete_edge_from_database(self, start_node_name: str, end_node_name: str, relationship_type: str):
+    def _delete_edge_from_database(self, start_node_name: str, end_node_name: str, relationship_name: str):
         """Remove an edge from the database."""
 
         def operation(session):
@@ -88,7 +89,7 @@ class GraphStorage:
                 start_node_properties={"name": start_node_name},
                 end_node_labels=["Node"],
                 end_node_properties={"name": end_node_name},
-                relationship_type=relationship_type
+                relationship_name=relationship_name
             )
 
         self._with_session(operation)
