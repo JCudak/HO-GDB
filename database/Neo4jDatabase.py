@@ -18,18 +18,6 @@ class Neo4jDatabase(Database):
         result = session.run(query, parameters or {})
         return [record for record in result]
 
-    def format_properties(self, properties: Optional[Dict[str, str]]) -> str:
-        """Convert a dictionary of properties to a Cypher-compatible string."""
-        if not properties:
-            return ""
-        return "{" + ", ".join(f"{k}: '{v}'" for k, v in properties.items()) + "}"
-
-    def format_labels(self, labels: Optional[List[str]]) -> str:
-        """Convert a list of labels to a Cypher-compatible string."""
-        if not labels:
-            return ""
-        return ":" + ":".join(labels)
-
     def export_nodes_to_csv(self, session, file_name: str):
         """Export nodes to a CSV file."""
         query = """

@@ -3,6 +3,11 @@ from graph_data.Edge import Edge
 from graph_data.HyperEdge import HyperEdge
 import pandas as pd
 import ast
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from the .env file
+load_dotenv()
 
 
 class GraphStorage:
@@ -15,9 +20,12 @@ class GraphStorage:
 
     def _with_session(self, operation):
         """Context manager for database session handling."""
-        # with self.db.start_session() as session: ##### for Neo4jDatabase
-        #    operation(session) ##### for Neo4jDatabase
-        operation(self.db.start_session())
+
+        if os.getenv("DATABASE_PROVIDER") == "NEO4J":
+            with self.db.start_session() as session:
+                operation(session)
+        elif os.getenv("DATABASE_PROVIDER") == "KUZU":
+            operation(self.db.start_session())
 
     def add_node(self, node_name: str):
         """Create a Node instance and add it to both the graph and the database."""

@@ -7,6 +7,20 @@ import pandas as pd
 
 
 class Database:
+    @staticmethod
+    def format_properties(properties: Optional[Dict[str, str]]) -> str:
+        """Convert a dictionary of properties to a Cypher-compatible string."""
+        if not properties:
+            return ""
+        return "{" + ", ".join(f"{k}: '{v}'" for k, v in properties.items()) + "}"
+
+    @staticmethod
+    def format_labels(labels: Optional[List[str]]) -> str:
+        """Convert a list of labels to a Cypher-compatible string."""
+        if not labels:
+            return ""
+        return ":" + ":".join(labels)
+
     @abstractmethod
     def export_nodes_to_csv(self, session, file_name: str):
         """Export nodes to a CSV file."""
