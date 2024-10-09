@@ -18,20 +18,53 @@ class KuzuDatabase(Database):
 
     def _execute_query(self, session, query: str, parameters: Optional[Dict] = None) -> List[Dict]:
         """Execute a Cypher query and return the results."""
-        print(query)
         session.execute(query)
+
+    def _replace_slash(self, s: str) -> str:
+        """
+        Replace all occurrences of '/' with '//' in the given string.
+        """
+        return s.replace('\\', '/')
+
+    def export_nodes_to_csv(self, session, file_name: str):
+        """Export nodes to a CSV file."""
+        query = f"""
+        COPY (MATCH (u:GNode) RETURN u.name AS name) TO '{self._replace_slash(file_name)}' (HEADER=true, DELIM="|");
+        """
+        self._execute_query(session, query)
+
+    def export_edges_to_csv(self, session, file_name: str):
+        """Export edges to a CSV file."""
+        query = f"""
+        COPY (MATCH (a:GNode)-[f:Connects]->(b:GNode) RETURN a.name AS start_name, b.name AS end_name) 
+        TO '{self._replace_slash(file_name)}' (HEADER=true, DELIM="|");
+        """
+        self._execute_query(session, query)
+
+    def import_nodes_from_csv(self, session, file_name: str):
+        """Import nodes from a CSV file into Neo4j."""
+
+        query = f"""
+        COPY GNode FROM '{self._replace_slash(file_name)}' (HEADER=true, DELIM="|");
+        """
+        self._execute_query(session, query)
+
+    def import_edges_from_csv(self, session, file_name: str):
+        """Import edges from a CSV file into Neo4j."""
+
+        query = f"""
+        COPY Connects FROM '{self._replace_slash(file_name)}' (HEADER=true, DELIM="|");
+        """
+        self._execute_query(session, query)
 
     def add_node(self, session, labels: Optional[List[str]] = None, properties: Optional[Dict[str, str]] = None):
         """Add a node to the database."""
-        if not properties:
-            raise ValueError("Properties must be provided to create a node.")
 
-        label_str = ":".join(labels) if labels else "GNode"
-
-        prop_placeholders = ", ".join([f"{key}: '{properties[key]}'" for key in properties])
+        label_str = self.format_labels(labels)
+        properties_str = self.format_properties(properties)
 
         query = f"""
-                CREATE (n:{label_str} {{{prop_placeholders}}})
+                CREATE (n{label_str} {properties_str})
                 RETURN n
                 """
         self._execute_query(self.session, query)
@@ -39,23 +72,22 @@ class KuzuDatabase(Database):
     def delete_node(self, session, labels: List[str], properties: Dict[str, str]):
         """Delete a node"""
 
-        label_str = ":".join(labels) if labels else "GNode"
-
-        prop_placeholders = ", ".join([f"{key}: '{properties[key]}'" for key in properties])
-        query = f""" MATCH(n:{label_str} {{{prop_placeholders}}}) DELETE n"""
+        label_str = self.format_labels(labels)
+        properties_str = self.format_properties(properties)
+        query = f""" MATCH(n{label_str} {properties_str}) DELETE n"""
         self._execute_query(self.session, query)
 
     def add_edge(self, session, start_node_labels: List[str], start_node_properties: Dict[str, str],
                  end_node_labels: List[str], end_node_properties: Dict[str, str], relationship_name: str = 'Connects'):
         """Add a relationship (edge) between two nodes."""
 
-        start_label_str = ":".join(start_node_labels) if start_node_labels else "GNode"
-        end_label_str = ":".join(end_node_labels) if end_node_labels else "GNode"
+        start_label_str = self.format_labels(start_node_labels)
+        end_label_str = self.format_labels(end_node_labels)
 
-        start_prop_placeholders = ", ".join([f"{key}: '{start_node_properties[key]}'" for key in start_node_properties])
-        end_prop_placeholders = ", ".join([f"{key}: '{end_node_properties[key]}'" for key in end_node_properties])
+        start_properties_str = self.format_properties(start_node_properties)
+        end_properties_str = self.format_properties(end_node_properties)
 
-        query = f""" MATCH(a: {start_label_str} {{{start_prop_placeholders}}}), (b:{end_label_str} {{{end_prop_placeholders}}})
+        query = f""" MATCH(a{start_label_str} {start_properties_str}), (b{end_label_str} {end_properties_str})
         CREATE(a) - [r:{relationship_name}]->(b)"""
         self._execute_query(self.session, query)
 
@@ -63,13 +95,13 @@ class KuzuDatabase(Database):
                     end_node_labels: List[str], end_node_properties: Dict[str, str], relationship_name: str):
         """Delete a relationship (edge) between two nodes."""
 
-        start_label_str = ":".join(start_node_labels) if start_node_labels else "GNode"
-        end_label_str = ":".join(end_node_labels) if end_node_labels else "GNode"
+        start_label_str = self.format_labels(start_node_labels)
+        end_label_str = self.format_labels(end_node_labels)
 
-        start_prop_placeholders = ", ".join([f"{key}: '{start_node_properties[key]}'" for key in start_node_properties])
-        end_prop_placeholders = ", ".join([f"{key}: '{end_node_properties[key]}'" for key in end_node_properties])
+        start_properties_str = self.format_properties(start_node_properties)
+        end_properties_str = self.format_properties(end_node_properties)
 
-        query = f""" MATCH(a: {start_label_str} {{{start_prop_placeholders}}})-[r:Connects]->(b:{end_label_str} {{{end_prop_placeholders}}}) 
+        query = f""" MATCH(a{start_label_str} {start_properties_str})-[r:Connects]->(b{end_label_str} {end_properties_str}) 
         DELETE r"""
         self._execute_query(self.session, query)
 
@@ -79,14 +111,6 @@ class KuzuDatabase(Database):
         MATCH (n)
         DETACH DELETE n
         """
-        self._execute_query(session, query)
-        query = f"""
-                DROP TABLE GNode
-                """
-        self._execute_query(session, query)
-        query = f"""
-                        DROP TABLE Connects
-                """
         self._execute_query(session, query)
 
     def start_session(self):

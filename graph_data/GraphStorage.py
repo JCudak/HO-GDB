@@ -112,34 +112,63 @@ class GraphStorage:
         hyper_edge = HyperEdge(node_names, relationship_type)
         self.hyper_edges.discard(hyper_edge)
 
-    def import_nodes_from_csv(self, file_path: str, clear: bool = True):
+    def export_graph(self):
+        export_dir = "exported"
+        os.makedirs(export_dir, exist_ok=True)
+
+        def operation(session):
+            self.db.export_nodes_to_csv(session, os.path.join(export_dir, 'nodes.csv'))
+            self.db.export_edges_to_csv(session, os.path.join(export_dir, 'edges.csv'))
+
+        self._with_session(operation)
+
+    def import_graph(self):
+        import_dir = "exported"
+        self._import_nodes_from_csv(os.path.join(import_dir, 'nodes.csv'))
+        self._import_edges_from_csv(os.path.join(import_dir, 'edges.csv'))
+
+    def _import_nodes_from_csv(self, file_path: str, clear: bool = True):
         """Import nodes from a CSV file."""
         if clear:
             self.nodes.clear()
 
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, delimiter='|')
 
         for _, row in df.iterrows():
-            properties = ast.literal_eval(row['properties'])
-            self.add_node(properties['name'])
+            print(row)
+            node = None
+            if os.getenv("DATABASE_PROVIDER") == "NEO4J":
+                properties = ast.literal_eval(row['properties'])
+                node = Node(properties['name'])
+            elif os.getenv("DATABASE_PROVIDER") == "KUZU":
+                node = Node(row['name'])
+
+            self.nodes.add(node)
 
         def operation(session):
             self.db.import_nodes_from_csv(session, file_path)
 
         self._with_session(operation)
 
-    def import_edges_from_csv(self, file_path: str, clear: bool = True):
+    def _import_edges_from_csv(self, file_path: str, clear: bool = True):
         """Import edges from a CSV file."""
         if clear:
             self.edges.clear()
 
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, delimiter='|')
 
         for _, row in df.iterrows():
             start_node_name: str = row['start_name']
             end_node_name: str = row['end_name']
-            relationship_type: str = row['type']
-            self.add_edge(start_node_name, end_node_name, relationship_type)
+            relationship_type: str = ''
+
+            if os.getenv("DATABASE_PROVIDER") == "NEO4J":
+                relationship_type: str = row['type']
+            elif os.getenv("DATABASE_PROVIDER") == "KUZU":
+                relationship_type: str = 'Connects'
+
+            edge = Edge(start_node_name, end_node_name, relationship_type)
+            self.edges.add(edge)
 
         def operation(session):
             self.db.import_edges_from_csv(session, file_path)
