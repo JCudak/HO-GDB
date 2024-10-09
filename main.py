@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 # Load environment variables from the .env file
 load_dotenv()
 
+
 def modify_graph_gui():
     """Graph modification GUI."""
 
@@ -91,19 +92,13 @@ def gui():
         graph_storage.clear_graph()
         print("Graph cleared successfully.")
 
-    def export_graph():
-        export_dir = "exported"
-        os.makedirs(export_dir, exist_ok=True)
-        with db._driver.session() as session:
-            db.export_nodes_to_csv(session, os.path.join(export_dir, 'nodes.csv'))
-            db.export_edges_to_csv(session, os.path.join(export_dir, 'edges.csv'))
-        print("Graph exported successfully.")
-
     def import_graph():
-        import_dir = "exported"
-        graph_storage.import_nodes_from_csv(os.path.join(import_dir, 'nodes.csv'))
-        graph_storage.import_edges_from_csv(os.path.join(import_dir, 'edges.csv'))
+        graph_storage.import_graph()
         print("Graph imported successfully.")
+
+    def export_graph():
+        graph_storage.export_graph()
+        print("Graph exported successfully.")
 
     def display_higher_order_graph():
         print(graph_storage)
