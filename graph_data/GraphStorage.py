@@ -37,7 +37,7 @@ class GraphStorage:
         """Add a node to the database."""
 
         def operation(session):
-            self.db.add_node(session, labels=["Node"], properties={"name": node_name})
+            self.db.add_node(session, labels=["GNode"], properties={"name": node_name})
 
         self._with_session(operation)
 
@@ -54,11 +54,11 @@ class GraphStorage:
         """Remove a node from the database."""
 
         def operation(session):
-            self.db.delete_node(session, labels=["Node"], properties={"name": node_name})
+            self.db.delete_node(session, labels=["GNode"], properties={"name": node_name})
 
         self._with_session(operation)
 
-    def add_edge(self, start_node_name: str, end_node_name: str, relationship_name: str = "CONNECTED"):
+    def add_edge(self, start_node_name: str, end_node_name: str, relationship_name: str = "Connects"):
         """Create an Edge instance and add it to both the graph and the database."""
         edge = Edge(start_node_name, end_node_name, relationship_name)
         self.edges.add(edge)
@@ -70,16 +70,16 @@ class GraphStorage:
         def operation(session):
             self.db.add_edge(
                 session,
-                start_node_labels=["Node"],
+                start_node_labels=["GNode"],
                 start_node_properties={"name": start_node_name},
-                end_node_labels=["Node"],
+                end_node_labels=["GNode"],
                 end_node_properties={"name": end_node_name},
                 relationship_name=relationship_name
             )
 
         self._with_session(operation)
 
-    def delete_edge(self, start_node_name: str, end_node_name: str, relationship_name: str = "CONNECTED"):
+    def delete_edge(self, start_node_name: str, end_node_name: str, relationship_name: str = "Connects"):
         """Remove an Edge instance from the graph and the database."""
         edge = Edge(start_node_name, end_node_name, relationship_name)
         if edge in self.edges:
@@ -93,9 +93,9 @@ class GraphStorage:
         def operation(session):
             self.db.delete_edge(
                 session,
-                start_node_labels=["Node"],
+                start_node_labels=["GNode"],
                 start_node_properties={"name": start_node_name},
-                end_node_labels=["Node"],
+                end_node_labels=["GNode"],
                 end_node_properties={"name": end_node_name},
                 relationship_name=relationship_name
             )
